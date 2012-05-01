@@ -24,10 +24,15 @@ void Loop(void)
 
       if (!p)
         continue;
+
+      if (ExamineMemoryUsage(p)) {
+        LogProcessKill(p);
+        ProcessInfoExpire(p->pid);
+      }
     }
 
     if (iterations > 0 && iterations % conf.log_period == 0)
-      DumpProcessInfo(iterations == 0 ? 1 : 0);
+      DumpProcessInfo();
 
     sleep(1);
     
@@ -37,6 +42,32 @@ void Loop(void)
 
 int ParseCommandLine(int argc, char *argv[])
 {
+  int opt;
+  
+  while ((opt = getopt(argc, argv, "fp:l:k:")) != -1) {
+    switch (opt) {
+      case 'f':
+        conf.daemonize = 0;
+        break;
+      case 'p':
+        strncpy(conf.logpath, optarg, sizeof(conf.logpath));
+        break;
+      case 'l':
+        conf.log_period = atoi(optarg);
+        break;
+      case 'k':
+        conf.process_killer_threshold = atof(optarg);
+        break;
+      default:
+        fprintf(stderr, "usage: %s\n", argv[0]);
+        fprintf(stderr, "\t-f\t\tRun in foreground\n");
+        fprintf(stderr, "\t-p <path>\tSpecify log path.\n");
+        fprintf(stderr, "\t-l <secs>\tSpecify log rate. (default: every three minutes)\n");
+        fprintf(stderr, "\t-k <percent>\tKill process if more than given percent of memory usage.\n");
+        return -1;
+    }
+  }
+
   return 0;
 }
 

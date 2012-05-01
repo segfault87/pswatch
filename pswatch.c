@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <time.h>
@@ -147,28 +148,19 @@ int GlobProcesses(void)
   return 0;
 }
 
-#if 0
-int main(void)
+int ExamineMemoryUsage(struct ProcessInfo *p)
 {
-  int i;
+  float percent;
 
-  ProcessInfoInit();
+  if (conf.process_killer_threshold == 0.0f)
+    return 0;
 
-  while (1) {
-    GlobProcesses();
-    
-    for (i = 0; i < indexcount; ++i) {
-      struct ProcessInfo *p = processes[indices[i]];
-      
-      if (p && p->rss_initial != p->rss) {
-        int rssdelta = p->rss - p->rss_initial;
-        printf("%d %s: %fmb\n", p->pid, p->procname, (rssdelta * PAGE_SIZE / 1048576.0f));
-      }
-    }
-
-    sleep(1);
+  percent = (p->rss * global.page_size) / (float)global.system_memory * 100.0f;
+  if (percent > conf.process_killer_threshold) {
+    kill(p->pid, SIGKILL);
+    return 1;
   }
 
   return 0;
 }
-#endif
+

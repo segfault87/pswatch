@@ -45,14 +45,11 @@ void InitializeContext(void)
   /* initialize config */
   strcpy(conf.logpath, ".");
 
-  conf.daemonize = 0;
+  conf.daemonize = 1;
 
-  conf.log_period = 60 * 5; /* five mins */
-  conf.log_period = 5; /* five mins */
+  conf.log_period = 60 * 3; /* three mins */
 
-  conf.process_killer = 0; /* disable by default */
-  conf.process_killer_threshold = 0;
-  conf.process_killer_iteration = 0;
+  conf.process_killer_threshold = 0.0f;
 
   /* initialize global context */
   global.system_memory = GetPhysicalRamSize();

@@ -51,6 +51,12 @@ void LogInit(void)
   LogRotateIfNeeded();
 }
 
+void LogProcessKill(struct ProcessInfo *p)
+{
+  fprintf(private.logfile, "Process %d %s killed due to excessive memory usage. (%.3f mbytes)\n\n",
+          p->pid, p->procname, p->rss * global.page_size / 1048576.0f);
+}
+
 void DumpProcessInfo(void)
 {
   static int flag;

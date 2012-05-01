@@ -21,5 +21,6 @@ struct ProcessInfo* ProcessInfoRetrieve(int pid);
 void ProcessInfoExpire(int pid);
 int UpdateProcessInfo(int pid);
 int GlobProcesses(void);
+int ExamineMemoryUsage(struct ProcessInfo *p);
 
 #endif
