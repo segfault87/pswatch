@@ -12,6 +12,7 @@ void Loop(void)
 {
   int iterations = 0;
   int i;
+  unsigned long memory_usage;
 
   ProcessInfoInit();
   LogInit();
@@ -19,16 +20,25 @@ void Loop(void)
   while (1) {
     GlobProcesses();
 
+    memory_usage = 0L;
     for (i = 0; i < indexcount; ++i) {
       struct ProcessInfo *p = processes[indices[i]];
 
       if (!p)
         continue;
 
-      if (ExamineMemoryUsage(p)) {
+      memory_usage += GetMemoryUsage(p);
+      
+      /*if (ExamineMemoryUsage(p)) {
         LogProcessKill(p);
         ProcessInfoExpire(p->pid);
-      }
+        }*/
+    }
+
+    if (conf.process_killer_threshold > 0.0f) {
+      while (memory_usage / (float)global.system_memory * 100.0f >=
+          conf.process_killer_threshold)
+        KillHighestMemoryUsage();
     }
 
     if (iterations > 0 && iterations % conf.log_period == 0)

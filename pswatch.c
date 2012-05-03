@@ -148,6 +148,34 @@ int GlobProcesses(void)
   return 0;
 }
 
+unsigned long GetMemoryUsage(struct ProcessInfo *p)
+{
+  if (!p)
+    return 0;
+
+  return p->rss * global.page_size;
+}
+
+void KillHighestMemoryUsage(void)
+{
+  int i;
+  int pid = -1;
+  int highest = 0;
+
+  for (i = 0; i < indexcount; ++i) {
+    struct ProcessInfo *p = processes[indices[i]];
+    if (p && p->rss > highest) {
+      pid = p->pid;
+      highest = p->rss;
+    }
+  }
+
+  if (pid >= 0) {
+    kill(pid, SIGKILL);
+    ProcessInfoExpire(pid);
+  }
+}
+
 int ExamineMemoryUsage(struct ProcessInfo *p)
 {
   float percent;
