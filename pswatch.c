@@ -13,35 +13,57 @@
 #include "context.h"
 #include "pswatch.h"
 
-struct ProcessInfo *processes[PID_MAX];
-int indices[PID_MAX];
-int indexcount;
+struct ProcessInfo processes[PROCESSES_MAX];
+int life;
+int nprocs;
+int upperbound;
 
 void ProcessInfoInit(void)
 {
   int i;
 
-  for (i = 0; i < PID_MAX; ++i)
-    processes[i] = NULL;
+  nprocs = 0;
+  upperbound = 0;
+  life = 0;
+
+  for (i = 0; i < PROCESSES_MAX; ++i)
+    memset(&processes[i], 0, sizeof(struct ProcessInfo));
 }
 
 struct ProcessInfo* ProcessInfoRetrieve(int pid)
 {
-  if (!processes[pid]) {
-    processes[pid] = (struct ProcessInfo *) malloc(sizeof(struct ProcessInfo));
-    memset(processes[pid], 0, sizeof(struct ProcessInfo));
+  int i;
+
+  for (i = 0; i < upperbound; ++i) {
+    if (processes[i].pid == pid)
+      return &processes[i];
   }
 
-  return processes[pid];
+  if (upperbound >= PROCESSES_MAX) {
+    for (i = 0; i < upperbound; ++i) {
+      if (processes[i].pid == 0) {
+        ++nprocs;
+        return &processes[i];
+      }
+    }
+  }
+
+  ++nprocs;
+
+  return &processes[upperbound++];
 }
 
 void ProcessInfoExpire(int pid)
 {
-  if (!processes[pid])
-    return;
+  int i;
 
-  free(processes[pid]);
-  processes[pid] = NULL;
+  for (i = 0; i < upperbound; ++i) {
+    if (processes[i].pid == pid) {
+      processes[i].pid = 0;
+      --nprocs;
+      return;
+    }
+  }
 }
 
 int UpdateProcessInfo(int pid)
@@ -122,6 +144,8 @@ int UpdateProcessInfo(int pid)
   
   process->oom_score = atoi(readbuf);
 
+  process->life = life;
+
   return 0;
 }
 
@@ -130,19 +154,28 @@ int GlobProcesses(void)
   DIR *dir;
   struct dirent *entry;
   int pid;
+  int i;
+
+  ++life;
 
   dir = opendir("/proc");
   if (!dir)
     return -1;
 
-  indexcount = 0;
   while ((entry = readdir(dir))) {
     if (!isdigit(entry->d_name[0]))
       continue;
 
     pid = atoi(entry->d_name);
     UpdateProcessInfo(pid);
-    indices[indexcount++] = pid;
+  }
+
+  for (i = 0; i < upperbound; ++i) {
+    if (processes[i].pid && processes[i].life != life) {
+      printf("%s is down!\n", processes[i].procname);
+      processes[i].pid = 0;
+      --nprocs;
+    }
   }
 
   return 0;
@@ -162,9 +195,9 @@ void KillHighestMemoryUsage(void)
   int pid = -1;
   int highest = 0;
 
-  for (i = 0; i < indexcount; ++i) {
-    struct ProcessInfo *p = processes[indices[i]];
-    if (p && p->rss > highest) {
+  for (i = 0; i < upperbound; ++i) {
+    struct ProcessInfo *p = &processes[i];
+    if (p->pid && p->rss > highest) {
       pid = p->pid;
       highest = p->rss;
     }

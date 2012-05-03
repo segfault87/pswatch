@@ -80,10 +80,10 @@ void DumpProcessInfo(void)
   int i;
 
   fprintf(private.logfile, "Log at %02d:%02d:%02d\n", tm->tm_hour, tm->tm_min, tm->tm_sec);
-  for (i = 0; i < indexcount; ++i) {
-    struct ProcessInfo *p = processes[indices[i]];
+  for (i = 0; i < upperbound; ++i) {
+    struct ProcessInfo *p = &processes[i];
     
-    if (p && (!flag || p->rss_initial != p->rss) && p->rss > 0) {
+    if (p->pid && (!flag || p->rss_initial != p->rss) && p->rss > 0) {
       int rssdelta = p->rss - p->rss_initial;
       int sign;
 

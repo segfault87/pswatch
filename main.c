@@ -21,10 +21,10 @@ void Loop(void)
     GlobProcesses();
 
     memory_usage = 0L;
-    for (i = 0; i < indexcount; ++i) {
-      struct ProcessInfo *p = processes[indices[i]];
+    for (i = 0; i < upperbound; ++i) {
+      struct ProcessInfo *p = &processes[i];
 
-      if (!p)
+      if (!p->pid)
         continue;
 
       memory_usage += GetMemoryUsage(p);

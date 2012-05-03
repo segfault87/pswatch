@@ -3,6 +3,7 @@
 
 #define PID_MAX 32768
 #define PAGE_SIZE 4096
+#define PROCESSES_MAX 200
 
 struct ProcessInfo {
   int pid;
@@ -10,11 +11,13 @@ struct ProcessInfo {
   int oom_score;
   unsigned long rss;
   unsigned long rss_initial;
+  int life;
 };
 
-extern struct ProcessInfo *processes[PID_MAX];
-extern int indices[PID_MAX];
-extern int indexcount;
+extern struct ProcessInfo processes[PROCESSES_MAX];
+extern int life;
+extern int nprocs;
+extern int upperbound;
 
 void ProcessInfoInit(void);
 struct ProcessInfo* ProcessInfoRetrieve(int pid);
