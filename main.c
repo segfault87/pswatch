@@ -32,7 +32,7 @@ void Loop(void)
       /*if (ExamineMemoryUsage(p)) {
         LogProcessKill(p);
         ProcessInfoExpire(p->pid);
-        }*/
+      }*/
     }
 
     if (conf.process_killer_threshold > 0.0f) {

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 
 #include "context.h"
@@ -9,6 +10,8 @@ struct {
   int year;
   int month;
   int day;
+
+  int crashlog;
 
   FILE *logfile;
 } private;
@@ -33,10 +36,10 @@ void LogRotateIfNeeded(void)
     if (private.logfile)
       fclose(private.logfile);
 
-    snprintf(filename, sizeof(filename), "%s/watcher-%04d-%02d-%02d.log",
-             conf.logpath, private.year, private.month, private.day);
+    snprintf(filename, sizeof(filename), "%s/watcher.%d.log",
+             conf.logpath, private.day % 2);
 
-    private.logfile = fopen(filename, "a");
+    private.logfile = fopen(filename, "w");
   }
 }
 
@@ -46,15 +49,26 @@ void LogInit(void)
   private.month = 0;
   private.day = 0;
 
+  private.crashlog = 0;
+
   private.logfile = NULL;
 
   LogRotateIfNeeded();
 }
 
-void LogProcessKill(struct ProcessInfo *p)
+int LogProcessKill(struct ProcessInfo *p)
 {
+  char cmd[256];
+  int ret;
+
   fprintf(private.logfile, "Process %d %s killed due to excessive memory usage. (%.3f mbytes)\n\n",
           p->pid, p->procname, p->rss * global.page_size / 1048576.0f);
+
+  snprintf(cmd, 256, "cp \"%s/watcher.%d.log\" \"%s/watcher.kill.%d.log\"",
+           conf.logpath, private.day % 2, conf.logpath, private.crashlog++);
+  ret = system(cmd);
+
+  return ret;
 }
 
 void DumpProcessInfo(void)
