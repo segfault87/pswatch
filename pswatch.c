@@ -172,7 +172,6 @@ int GlobProcesses(void)
 
   for (i = 0; i < upperbound; ++i) {
     if (processes[i].pid && processes[i].life != life) {
-      printf("%s is down!\n", processes[i].procname);
       processes[i].pid = 0;
       --nprocs;
     }
