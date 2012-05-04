@@ -11,6 +11,7 @@
 #include <time.h>
 
 #include "context.h"
+#include "log.h"
 #include "pswatch.h"
 
 struct ProcessInfo processes[PROCESSES_MAX];
@@ -189,24 +190,40 @@ unsigned long GetMemoryUsage(struct ProcessInfo *p)
   return p->rss * global.page_size;
 }
 
-void KillHighestMemoryUsage(void)
+unsigned long KillHighestMemoryUsage(void)
 {
   int i;
   int pid = -1;
-  int highest = 0;
+  int self = getpid();
+  int parent = getppid();
+  int hrss = 0;
+  struct ProcessInfo *highest = NULL;
+  unsigned long usage;
 
   for (i = 0; i < upperbound; ++i) {
     struct ProcessInfo *p = &processes[i];
-    if (p->pid && p->rss > highest) {
+
+    if (p->pid == 1 || p->pid == parent || p->pid == self)
+      continue;
+    
+    if (p->pid && p->rss > hrss) {
       pid = p->pid;
-      highest = p->rss;
+      highest = p;
+      hrss = p->rss;
     }
   }
 
   if (pid >= 0) {
     kill(pid, SIGKILL);
+    usleep(300000);
+    usage = GetMemoryUsage(highest);
+    LogProcessKill(highest);
     ProcessInfoExpire(pid);
+
+    return usage;
   }
+
+  return 0;
 }
 
 int ExamineMemoryUsage(struct ProcessInfo *p)

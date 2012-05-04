@@ -56,19 +56,21 @@ void LogInit(void)
   LogRotateIfNeeded();
 }
 
-int LogProcessKill(struct ProcessInfo *p)
+void LogProcessKill(struct ProcessInfo *p)
 {
-  char cmd[256];
-  int ret;
-
   fprintf(private.logfile, "Process %d %s killed due to excessive memory usage. (%.3f mbytes)\n\n",
           p->pid, p->procname, p->rss * global.page_size / 1048576.0f);
 
+  fflush(private.logfile);
+}
+
+int FlushKillLog(void)
+{
+  char cmd[256];
+
   snprintf(cmd, sizeof(cmd), "cp \"%s/watcher.%d.log\" \"%s/watcher.kill.%d.log\"",
            conf.logpath, private.day % 2, conf.logpath, private.crashlog++);
-  ret = system(cmd);
-
-  return ret;
+  return system(cmd);
 }
 
 void DumpProcessInfo(void)

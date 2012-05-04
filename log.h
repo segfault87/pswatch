@@ -4,7 +4,8 @@
 #include "pswatch.h"
 
 void LogInit(void);
-int LogProcessKill(struct ProcessInfo *p);
+void LogProcessKill(struct ProcessInfo *p);
+int FlushKillLog(void);
 void DumpProcessInfo(void);
 
 #endif

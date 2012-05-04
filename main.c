@@ -13,6 +13,7 @@ void Loop(void)
   int iterations = 0;
   int i;
   unsigned long memory_usage;
+  int killflag = 0;
 
   ProcessInfoInit();
   LogInit();
@@ -37,8 +38,15 @@ void Loop(void)
 
     if (conf.process_killer_threshold > 0.0f) {
       while (memory_usage / (float)global.system_memory * 100.0f >=
-          conf.process_killer_threshold)
-        KillHighestMemoryUsage();
+             conf.process_killer_threshold) {
+        memory_usage -= KillHighestMemoryUsage();
+        killflag = 1;
+      }
+
+      if (killflag) {
+        FlushKillLog();
+        killflag = 0;
+      }
     }
 
     if (iterations > 0 && iterations % conf.log_period == 0)
