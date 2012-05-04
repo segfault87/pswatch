@@ -40,6 +40,7 @@ struct ProcessInfo* ProcessInfoRetrieve(int pid)
   }
 
   if (upperbound >= PROCESSES_MAX) {
+    upperbound = PROCESSES_MAX - 1;
     for (i = 0; i < upperbound; ++i) {
       if (processes[i].pid == 0) {
         ++nprocs;

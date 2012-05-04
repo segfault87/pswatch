@@ -64,7 +64,7 @@ int LogProcessKill(struct ProcessInfo *p)
   fprintf(private.logfile, "Process %d %s killed due to excessive memory usage. (%.3f mbytes)\n\n",
           p->pid, p->procname, p->rss * global.page_size / 1048576.0f);
 
-  snprintf(cmd, 256, "cp \"%s/watcher.%d.log\" \"%s/watcher.kill.%d.log\"",
+  snprintf(cmd, sizeof(cmd), "cp \"%s/watcher.%d.log\" \"%s/watcher.kill.%d.log\"",
            conf.logpath, private.day % 2, conf.logpath, private.crashlog++);
   ret = system(cmd);
 
