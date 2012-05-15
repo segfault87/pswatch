@@ -19,6 +19,7 @@ void Loop(void)
   LogInit();
 
   while (1) {
+    LogInit();
     GlobProcesses();
 
     memory_usage = 0L;
@@ -29,11 +30,6 @@ void Loop(void)
         continue;
 
       memory_usage += GetMemoryUsage(p);
-      
-      /*if (ExamineMemoryUsage(p)) {
-        LogProcessKill(p);
-        ProcessInfoExpire(p->pid);
-      }*/
     }
 
     if (conf.process_killer_threshold > 0.0f) {
@@ -44,15 +40,16 @@ void Loop(void)
       }
 
       if (killflag) {
+        DumpProcessInfo(1);
         FlushKillLog();
         killflag = 0;
       }
     }
 
     if (iterations > 0 && iterations % conf.log_period == 0)
-      DumpProcessInfo();
+      DumpProcessInfo(0);
 
-    sleep(1);
+    usleep(conf.sleep_msec * 1000);
     
     ++iterations;
   }
@@ -62,7 +59,7 @@ int ParseCommandLine(int argc, char *argv[])
 {
   int opt;
   
-  while ((opt = getopt(argc, argv, "fp:l:k:")) != -1) {
+  while ((opt = getopt(argc, argv, "fp:l:k:s:")) != -1) {
     switch (opt) {
       case 'f':
         conf.daemonize = 0;
@@ -76,12 +73,18 @@ int ParseCommandLine(int argc, char *argv[])
       case 'k':
         conf.process_killer_threshold = atof(optarg);
         break;
+      case 's':
+	conf.sleep_msec = atoi (optarg);
+	if (conf.sleep_msec < 100)
+	  return -1;
+	break;
       default:
         fprintf(stderr, "usage: %s\n", argv[0]);
         fprintf(stderr, "\t-f\t\tRun in foreground\n");
         fprintf(stderr, "\t-p <path>\tSpecify log path.\n");
         fprintf(stderr, "\t-l <secs>\tSpecify log rate. (default: every three minutes)\n");
         fprintf(stderr, "\t-k <percent>\tKill process if more than given percent of memory usage.\n");
+        fprintf(stderr, "\t-s <millisec>\tPorcess check period(default: 1000 millisec, min 100 ms)\n");
         return -1;
     }
   }

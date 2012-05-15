@@ -14,6 +14,7 @@ struct {
   int crashlog;
 
   FILE *logfile;
+  FILE *killfile;
 } private;
 
 void LogRotateIfNeeded(void)
@@ -36,8 +37,8 @@ void LogRotateIfNeeded(void)
     if (private.logfile)
       fclose(private.logfile);
 
-    snprintf(filename, sizeof(filename), "%s/watcher.%d.log",
-             conf.logpath, private.day % 2);
+    snprintf(filename, sizeof(filename), "%s/watcher-%02d-%02d-%02d.log",
+             conf.logpath, private.year, private.month, private.day);
 
     private.logfile = fopen(filename, "w");
   }
@@ -45,6 +46,18 @@ void LogRotateIfNeeded(void)
 
 void LogInit(void)
 {
+  static sflag = 0;
+  int d;
+  time_t curtime = time(NULL);
+  struct tm *tm = localtime(&curtime);
+
+  d = tm->tm_mday;
+
+  if (sflag && (d == private.day)) 
+    return;
+
+  sflag = 1;
+
   private.year = 0;
   private.month = 0;
   private.day = 0;
@@ -52,45 +65,70 @@ void LogInit(void)
   private.crashlog = 0;
 
   private.logfile = NULL;
+  private.killfile = NULL;
 
   LogRotateIfNeeded();
 }
 
 void LogProcessKill(struct ProcessInfo *p)
 {
-  fprintf(private.logfile, "Process %d %s killed due to excessive memory usage. (%.3f mbytes)\n\n",
-          p->pid, p->procname, p->rss * global.page_size / 1048576.0f);
+  if (!private.killfile) {
+    char path[256];
+    snprintf(path, sizeof(path), "%s/watcher.kill.log", conf.logpath);
+    private.killfile = fopen(path, "w");
+  }
 
-  fflush(private.logfile);
+  fprintf(private.killfile, "Process %d %s killed due to excessive memory usage. (%.3f mbytes)\n\n",
+          p->pid, p->procname, p->rss * global.page_size / 1048576.0f); // 1048576 = 1024 * 1024
 }
 
 int FlushKillLog(void)
 {
   char cmd[256];
 
-  snprintf(cmd, sizeof(cmd), "cp \"%s/watcher.%d.log\" \"%s/watcher.kill.%d.log\"",
-           conf.logpath, private.day % 2, conf.logpath, private.crashlog++);
+  if (!private.killfile)
+    return 0;
+
+  fflush(private.killfile);
+  fclose(private.killfile);
+  private.killfile = NULL;
+
+  snprintf(cmd, sizeof(cmd), "mv \"%s/watcher.kill.log\" \"%s/watcher.kill.%d.log\"",
+           conf.logpath, conf.logpath, private.crashlog++);
   return system(cmd);
 }
 
-void DumpProcessInfo(void)
+void DumpProcessInfo(int kill)
 {
   static int flag;
   static const char *desc[] = {"up", "down"};
+  struct tm tm;
+  char logdate[32];
   time_t curtime = time(NULL);
-  struct tm *tm = localtime(&curtime);
   int i;
+  FILE *ofp;
 
-  fprintf(private.logfile, "Log at %02d:%02d:%02d\n", tm->tm_hour, tm->tm_min, tm->tm_sec);
+  if (kill)
+    ofp = private.killfile;
+  else
+    ofp = private.logfile;
+
+  localtime_r(&curtime, &tm);
+
+  strftime(logdate, 32, "%F %T", &tm);
+  fprintf(ofp, "Log at %s\n", logdate);
   for (i = 0; i < upperbound; ++i) {
     struct ProcessInfo *p = &processes[i];
     
-    if (p->pid && (!flag || p->rss_initial != p->rss) && p->rss > 0) {
+    if (p->pid && (!flag || p->rss_initial != p->rss || kill) && p->rss > 0) {
       int rssdelta = p->rss - p->rss_initial;
       int sign;
 
+      if (kill)
+        rssdelta = 0;
+
       if (rssdelta == 0) {
-        fprintf(private.logfile, "%d %s %.3f mbytes, oom_score: %d\n",
+        fprintf(ofp, "%d %s %.3f mbytes, oom_score: %d\n",
                 p->pid, p->procname, p->rss * global.page_size / 1048576.0f, p->oom_score);
       } else {
         if (rssdelta > 0) {
@@ -100,19 +138,18 @@ void DumpProcessInfo(void)
           sign = 1;
         }
 
-        fprintf(private.logfile, "%d %s %.3f mbytes (%.3f mbytes %s), oom_score: %d\n",
+        fprintf(ofp, "%d %s %.3f mbytes (%.3f mbytes %s), oom_score: %d\n",
                 p->pid, p->procname, p->rss * global.page_size / 1048576.0f,
                 rssdelta * global.page_size / 1048576.f, desc[sign], p->oom_score);
       }
     }
 
-    if (p)
+    if (p && !kill)
       p->rss_initial = 0;
   }
 
-  fprintf(private.logfile, "\n");
-
-  fflush(private.logfile);
+  fprintf(ofp, "\n");
+  fflush(ofp);
 
   ++flag;
 }

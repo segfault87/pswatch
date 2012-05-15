@@ -6,6 +6,7 @@ struct ConfContext {
   int daemonize;
   int log_period;
   float process_killer_threshold;
+  int sleep_msec;
 };
 
 struct GlobalContext {

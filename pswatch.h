@@ -11,6 +11,7 @@ struct ProcessInfo {
   int oom_score;
   unsigned long rss;
   unsigned long rss_initial;
+  int used;
   int life;
 };
 

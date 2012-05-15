@@ -6,6 +6,6 @@
 void LogInit(void);
 void LogProcessKill(struct ProcessInfo *p);
 int FlushKillLog(void);
-void DumpProcessInfo(void);
+void DumpProcessInfo(int kill);
 
 #endif

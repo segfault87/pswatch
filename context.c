@@ -11,6 +11,9 @@
 struct ConfContext conf;
 struct GlobalContext global;
 
+
+// XXX: 물리적 메모리만 계산한다. swap 은?
+
 unsigned long GetPhysicalRamSize(void)
 {
   char data[128];
@@ -51,8 +54,10 @@ void InitializeContext(void)
 
   conf.process_killer_threshold = 0.0f;
 
+  conf.sleep_msec = 1000;
+
   /* initialize global context */
   global.system_memory = GetPhysicalRamSize();
-  global.pid_max = PID_MAX;
+  global.pid_max = PID_MAX;		 // cat /proc/sys/kernel/pid_max
   global.page_size = PAGE_SIZE;
 }

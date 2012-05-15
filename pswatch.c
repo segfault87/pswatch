@@ -124,11 +124,12 @@ int UpdateProcessInfo(int pid)
   strtok_r(NULL, " ", &saveptr); // starttime
   strtok_r(NULL, " ", &saveptr); // vmsize
     
-  ptr = strtok_r(NULL, " ", &saveptr);
-  process->rss = strtoul(ptr, NULL, 10);
 
   if (!process->rss_initial)
     process->rss_initial = process->rss;
+
+  ptr = strtok_r(NULL, " ", &saveptr);
+  process->rss = strtoul(ptr, NULL, 10);
 
   /* oom_score */
   snprintf(path, 128, "/proc/%d/oom_score", pid);
@@ -169,6 +170,7 @@ int GlobProcesses(void)
       continue;
 
     pid = atoi(entry->d_name);
+
     UpdateProcessInfo(pid);
   }
 
@@ -206,7 +208,7 @@ unsigned long KillHighestMemoryUsage(void)
     if (p->pid == 1 || p->pid == parent || p->pid == self)
       continue;
     
-    if (p->pid && p->rss > hrss) {
+    if (p->pid && (p->rss > hrss)) {
       pid = p->pid;
       highest = p;
       hrss = p->rss;
