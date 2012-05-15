@@ -14,6 +14,7 @@ void Loop(void)
   int i;
   unsigned long memory_usage;
   int killflag = 0;
+  int timedelta = 0, timedelta_prev = 0;
 
   ProcessInfoInit();
   LogInit();
@@ -46,11 +47,15 @@ void Loop(void)
       }
     }
 
-    if (iterations > 0 && iterations % conf.log_period == 0)
+    timedelta = iterations * (conf.sleep_msec / 1000.0f);
+
+    if (timedelta_prev != timedelta && iterations % conf.log_period == 0)
       DumpProcessInfo(0);
 
+    timedelta_prev = timedelta;
+
     usleep(conf.sleep_msec * 1000);
-    
+
     ++iterations;
   }
 }
