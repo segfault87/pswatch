@@ -37,8 +37,8 @@ void LogRotateIfNeeded(void)
     if (private.logfile)
       fclose(private.logfile);
 
-    snprintf(filename, sizeof(filename), "%s/watcher-%02d-%02d-%02d.log",
-             conf.logpath, private.year, private.month, private.day);
+    snprintf(filename, sizeof(filename), "%s/watcher.%d.log",
+             conf.logpath, private.day % 2);
 
     private.logfile = fopen(filename, "w");
   }
@@ -85,6 +85,8 @@ void LogProcessKill(struct ProcessInfo *p)
 int FlushKillLog(void)
 {
   char cmd[256];
+  time_t curtime = time(NULL);
+  struct tm *tm = localtime(&curtime);
 
   if (!private.killfile)
     return 0;
@@ -93,8 +95,10 @@ int FlushKillLog(void)
   fclose(private.killfile);
   private.killfile = NULL;
 
-  snprintf(cmd, sizeof(cmd), "mv \"%s/watcher.kill.log\" \"%s/watcher.kill.%d.log\"",
-           conf.logpath, conf.logpath, private.crashlog++);
+  snprintf(cmd, sizeof(cmd), "mv \"%s/watcher.kill.log\" \"%s/watcher.kill.%04d-%02d-%02d.%02d:%02d:%02d.log\"",
+           conf.logpath, conf.logpath, tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
+  private.crashlog++;
+  
   return system(cmd);
 }
 
